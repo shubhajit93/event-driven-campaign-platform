@@ -1,0 +1,3 @@
+rootProject.name = 'event-driven-campaign-platform'
+
+include 'campaign-api', 'campaign-service', 'delivery-worker'

@@ -1,0 +1,11 @@
+# Non-secret settings. Database credentials come from the "db-credentials" Secret,
+# which is created out of band (e.g. External Secrets Operator syncing from AWS Secrets Manager).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-config
+  namespace: campaigns
+data:
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-bootstrap.kafka.svc:9092"
+  APP_KAFKA_PARTITIONS: "6"
+  APP_KAFKA_REPLICAS: "3"

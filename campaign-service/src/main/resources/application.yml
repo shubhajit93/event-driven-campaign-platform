@@ -1,0 +1,50 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: campaign-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/campaigns}
+    username: ${DB_USERNAME:campaigns}
+    password: ${DB_PASSWORD:campaigns}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: campaign-service
+      auto-offset-reset: earliest
+  threads:
+    virtual:
+      enabled: true
+
+outbox:
+  relay:
+    batch-size: 200
+    interval-ms: 500
+    send-timeout: 10s
+
+app:
+  kafka:
+    partitions: 3
+    replicas: 1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  observations:
+    key-values:
+      application: campaign-service
