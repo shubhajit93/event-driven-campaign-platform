@@ -42,8 +42,10 @@ public class DeliveryListener {
         handle(payload, Integer.parseInt(receiveCount), visibility);
     }
 
+    // A poll may not fetch more messages than the listener can process at once, so both follow the concurrency.
     @SqsListener(value = Queues.SMS_REQUESTED, id = "sms-delivery",
-            maxConcurrentMessages = "${delivery.sms.concurrency:5}")
+            maxConcurrentMessages = "${delivery.sms.concurrency:5}",
+            maxMessagesPerPoll = "${delivery.sms.concurrency:5}")
     public void onSms(String payload, @Header(RECEIVE_COUNT) String receiveCount, Visibility visibility) {
         handle(payload, Integer.parseInt(receiveCount), visibility);
     }
