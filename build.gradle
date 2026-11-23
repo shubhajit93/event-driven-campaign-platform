@@ -9,6 +9,9 @@ subprojects {
 
     apply plugin: 'java'
 
+    // Newer than the version Spring Boot 3.4.1 manages; needed for recent Docker Engine API versions.
+    ext['testcontainers.version'] = '1.21.4'
+
     java {
         toolchain {
             languageVersion = JavaLanguageVersion.of(21)

@@ -30,6 +30,14 @@ jobs:
       - name: Build and run all tests
         run: ./gradlew build --no-daemon
 
+      # Integration tests skip themselves when Docker is unavailable. In CI that would hide a broken setup.
+      - name: Fail if any test was skipped
+        run: |
+          if grep -l 'skipped="[1-9]' */build/test-results/test/*.xml; then
+            echo "::error::Tests were skipped in CI (is Docker reachable by Testcontainers?)"
+            exit 1
+          fi
+
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4
