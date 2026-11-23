@@ -3,7 +3,7 @@ package io.github.shubhajit93.campaign.service.outbox;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.shubhajit93.campaign.api.DeliveryRequested;
-import io.github.shubhajit93.campaign.api.Topics;
+import io.github.shubhajit93.campaign.api.Queues;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,8 +27,8 @@ public class OutboxWriter {
     @Transactional(propagation = Propagation.MANDATORY)
     public void enqueue(List<DeliveryRequested> deliveries, Instant now) {
         List<OutboxEvent> events = deliveries.stream()
-                .map(d -> new OutboxEvent(d.messageId(), d.campaignId(), Topics.requestedFor(d.channel()),
-                        d.recipientId().toString(), toJson(d), now))
+                .map(d -> new OutboxEvent(d.messageId(), d.campaignId(), Queues.requestedFor(d.channel()),
+                        toJson(d), now))
                 .toList();
         repository.saveAll(events);
     }

@@ -19,6 +19,7 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8082"
     spec:
+      serviceAccountName: delivery-worker
       securityContext:
         runAsNonRoot: true
       containers:
@@ -65,8 +66,8 @@ spec:
     - port: 80
       targetPort: 8082
 ---
-# Workers scale on CPU here. With KEDA, scaling on consumer lag is the better signal.
-# Replicas beyond the topic's partition count would sit idle.
+# Workers scale on CPU here. With KEDA, the aws-sqs-queue scaler (queue depth) is the better signal.
+# SQS has no partitions, so every extra replica adds real consumer capacity.
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:

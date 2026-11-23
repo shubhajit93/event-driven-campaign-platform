@@ -11,10 +11,14 @@ import java.util.regex.Pattern;
 /**
  * Stand-in for a real provider. It validates addresses the way a provider would, and can inject
  * transient failures, so the retry and dead-letter paths can be exercised locally.
+ * <p>
+ * Like payment providers' test card numbers, any address containing {@value #ALWAYS_TRANSIENT_MARKER}
+ * always fails transiently, for example {@code someone@flaky.example}.
  */
 public class SimulatedSender implements ChannelSender {
 
     private static final Logger log = LoggerFactory.getLogger(SimulatedSender.class);
+    public static final String ALWAYS_TRANSIENT_MARKER = "flaky";
 
     private final Channel channel;
     private final Pattern validAddress;
@@ -38,7 +42,7 @@ public class SimulatedSender implements ChannelSender {
         if (!validAddress.matcher(delivery.address()).matches()) {
             throw new PermanentDeliveryException("Invalid " + channel + " address");
         }
-        if (random.getAsDouble() < transientFailureRate) {
+        if (delivery.address().contains(ALWAYS_TRANSIENT_MARKER) || random.getAsDouble() < transientFailureRate) {
             throw new TransientDeliveryException(channel + " provider temporarily unavailable");
         }
         log.info("Delivered {} message {} for campaign {}", channel, delivery.messageId(), delivery.campaignId());

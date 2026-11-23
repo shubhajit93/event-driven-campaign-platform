@@ -1,4 +1,4 @@
-# Local stack: PostgreSQL, single-node Kafka (KRaft), and both services.
+# Local stack: PostgreSQL, LocalStack (SQS), and both services.
 # Usage: ./gradlew bootJar && docker compose up --build
 services:
   postgres:
@@ -13,45 +13,43 @@ services:
       interval: 5s
       retries: 10
 
-  kafka:
-    image: apache/kafka:3.8.1
-    ports: ["9092:9092"]
+  # SQS emulator. The ready hook creates every queue with its DLQ and redrive policy.
+  localstack:
+    image: localstack/localstack:3.8.1
+    ports: ["4566:4566"]
     environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: INTERNAL://:29092,EXTERNAL://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      SERVICES: sqs
+    volumes:
+      - ./docker/localstack/init-queues.sh:/etc/localstack/init/ready.d/init-queues.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null"]
-      interval: 10s
-      retries: 10
+      test: ["CMD-SHELL", "awslocal sqs get-queue-url --queue-name delivery-completed > /dev/null"]
+      interval: 5s
+      retries: 20
 
   campaign-service:
     build: ./campaign-service
     ports: ["8081:8081"]
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/campaigns
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localstack:4566
+      SPRING_CLOUD_AWS_REGION_STATIC: us-east-1
+      SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY: test
+      SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY: test
     depends_on:
       postgres: { condition: service_healthy }
-      kafka: { condition: service_healthy }
+      localstack: { condition: service_healthy }
 
   delivery-worker:
     build: ./delivery-worker
     ports: ["8082:8082"]
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/deliveries
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      # Make 20% of sends fail transiently to watch retries and the dead-letter topic at work.
+      SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localstack:4566
+      SPRING_CLOUD_AWS_REGION_STATIC: us-east-1
+      SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY: test
+      SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY: test
+      # Make 20% of sends fail transiently to watch retries and the dead-letter queue at work.
       SIMULATED_FAILURE_RATE: "0.2"
     depends_on:
       postgres: { condition: service_healthy }
-      kafka: { condition: service_healthy }
+      localstack: { condition: service_healthy }

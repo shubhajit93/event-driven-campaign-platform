@@ -48,7 +48,7 @@ public class CampaignService {
 
     /**
      * The status change and the fan-out events are committed in one local transaction.
-     * There is no dual write to the database and Kafka, so a crash can never leave them out of sync.
+     * There is no dual write to the database and SQS, so a crash can never leave them out of sync.
      */
     @Transactional
     public CampaignResponse launch(UUID id) {
@@ -66,7 +66,7 @@ public class CampaignService {
     }
 
     /**
-     * Applies a delivery result exactly once, even though Kafka delivers it at least once.
+     * Applies a delivery result exactly once, even though SQS delivers it at least once.
      *
      * @return {@code false} if the result was a duplicate and was ignored
      */

@@ -26,7 +26,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # Integration tests start PostgreSQL and Kafka with Testcontainers (Docker is available on the runner).
+      # Integration tests start PostgreSQL and LocalStack (SQS) with Testcontainers (Docker is available on the runner).
       - name: Build and run all tests
         run: ./gradlew build --no-daemon
 
@@ -66,9 +66,29 @@ jobs:
       - name: Render Kubernetes manifests
         run: kubectl kustomize deploy/k8s > /dev/null
 
+  e2e:
+    name: End-to-end (docker compose)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: jars
+      - name: Start stack
+        run: docker compose up -d --build --wait
+      - name: Run smoke test
+        run: ./scripts/smoke-test.sh
+      - name: Service logs
+        if: always()
+        run: docker compose logs campaign-service delivery-worker --tail 200
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
+
   images:
     name: Build and push images
-    needs: [build, validate-infra]
+    needs: [build, validate-infra, e2e]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:

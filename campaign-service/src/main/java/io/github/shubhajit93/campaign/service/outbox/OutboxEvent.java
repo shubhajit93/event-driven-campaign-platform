@@ -16,8 +16,9 @@ public class OutboxEvent {
     private UUID id;
 
     private UUID aggregateId;
-    private String topic;
-    private String messageKey;
+
+    /** Name of the SQS queue the event goes to. */
+    private String destination;
 
     @Column(columnDefinition = "text")
     private String payload;
@@ -28,11 +29,10 @@ public class OutboxEvent {
     protected OutboxEvent() {
     }
 
-    public OutboxEvent(UUID id, UUID aggregateId, String topic, String messageKey, String payload, Instant createdAt) {
+    public OutboxEvent(UUID id, UUID aggregateId, String destination, String payload, Instant createdAt) {
         this.id = id;
         this.aggregateId = aggregateId;
-        this.topic = topic;
-        this.messageKey = messageKey;
+        this.destination = destination;
         this.payload = payload;
         this.createdAt = createdAt;
     }
@@ -45,12 +45,8 @@ public class OutboxEvent {
         return id;
     }
 
-    public String getTopic() {
-        return topic;
-    }
-
-    public String getMessageKey() {
-        return messageKey;
+    public String getDestination() {
+        return destination;
     }
 
     public String getPayload() {

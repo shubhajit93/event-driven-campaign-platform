@@ -30,13 +30,12 @@ create table recipients
 
 create index idx_recipients_campaign on recipients (campaign_id);
 
--- Transactional outbox: written in the same transaction as the business change, relayed to Kafka afterwards.
+-- Transactional outbox: written in the same transaction as the business change, relayed to SQS afterwards.
 create table outbox_events
 (
     id           uuid primary key,
     aggregate_id uuid         not null,
-    topic        varchar(200) not null,
-    message_key  varchar(200) not null,
+    destination  varchar(80)  not null,
     payload      text         not null,
     created_at   timestamptz  not null,
     published_at timestamptz

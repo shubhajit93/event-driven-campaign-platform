@@ -22,8 +22,9 @@ import java.util.Map;
  * <ul>
  *   <li>Duplicate (redelivered) messages are skipped through the processed-message table.</li>
  *   <li>Permanent failures are reported as FAILED straight away, without retrying.</li>
- *   <li>Transient failures propagate. The transaction rolls back (including the idempotency mark)
- *       and the Kafka error handler retries with backoff, then dead-letters the message.</li>
+ *   <li>Transient failures propagate. The transaction rolls back (including the idempotency mark), and the
+ *       listener schedules a retry through the SQS visibility timeout. After the last attempt, the message
+ *       goes to the DLQ.</li>
  * </ul>
  */
 @Service
@@ -71,7 +72,7 @@ public class DeliveryService {
                 "status", result.status().name()).increment();
     }
 
-    /** Called by the error handler once retries are exhausted, so the campaign still reaches a final state. */
+    /** Called on the final failed attempt, so the campaign still reaches a final state. */
     public void reportExhausted(DeliveryRequested request, String reason) {
         results.publish(DeliveryCompleted.failed(request, "Retries exhausted: " + reason, clock.instant()));
         metrics.counter("campaign.deliveries", "channel", request.channel().name(), "status", "EXHAUSTED").increment();

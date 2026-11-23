@@ -12,15 +12,15 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    producer:
-      acks: all
-      properties:
-        enable.idempotence: true
-    consumer:
-      group-id: campaign-service
-      auto-offset-reset: earliest
+  cloud:
+    aws:
+      # Credentials come from the default AWS chain (IRSA on EKS).
+      # Locally, docker-compose points the SQS endpoint at LocalStack.
+      region:
+        static: ${AWS_REGION:ap-southeast-1}
+      sqs:
+        # Fail fast instead of auto-creating a queue that would have no dead-letter queue.
+        queue-not-found-strategy: fail
   threads:
     virtual:
       enabled: true
@@ -31,11 +31,6 @@ outbox:
     interval-ms: 500
     send-timeout: 10s
 
-app:
-  kafka:
-    partitions: 3
-    replicas: 1
-
 management:
   endpoints:
     web:
@@ -45,6 +40,3 @@ management:
     health:
       probes:
         enabled: true
-  observations:
-    key-values:
-      application: campaign-service

@@ -3,5 +3,6 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - config.yaml
+  - service-accounts.yaml
   - campaign-service.yaml
   - delivery-worker.yaml
