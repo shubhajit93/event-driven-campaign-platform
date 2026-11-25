@@ -18,7 +18,18 @@ A multi-channel (email and SMS) campaign delivery system built with **Java 21, S
   - Kubernetes with IRSA
   - Terraform for queues, DLQs, and least-privilege IAM
 
-> I built this from scratch to show, in open source, the architecture I use in production at work. The production system's campaign pipeline also runs on AWS SQS, but its code is proprietary. See the [case study](https://github.com/shubhajit93/security-awareness-platform-case-study) for that system.
+> I built this from scratch as an open-source version of the campaign pipeline I lead at work. That system's code is proprietary; see the [case study](https://github.com/shubhajit93/security-awareness-platform-case-study). This repo keeps the production design and adds the two guarantees on that system's roadmap: a transactional outbox and idempotent consumers.
+
+### How it maps to the production system
+
+| | Production pipeline | This repo |
+|---|---|---|
+| Queues | One SQS queue per workload and environment (email, SMS, voice, AI, speech-to-text, video), each with a DLQ | One per channel (email, SMS) plus results, each with a DLQ |
+| Retries | Visibility timeout, then redrive to the DLQ after 5 receives | The same, plus exponential backoff by changing the visibility timeout |
+| Publishing | Database write, then enqueue | **Transactional outbox** with a `SKIP LOCKED` relay |
+| Duplicates | Possible (at-least-once) | **Idempotent consumers**, so each message takes effect exactly once |
+| Stack | Reactive Spring Boot, MongoDB | Spring Boot (servlet), PostgreSQL, so the outbox and idempotency are plain SQL transactions |
+| Infrastructure | Terraform: queues, DLQs, per-queue IAM | Terraform: queues, DLQs, least-privilege IAM per service |
 
 ---
 
